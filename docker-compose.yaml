@@ -1,0 +1,47 @@
+services:
+  web:
+    image: my-odoo-18:raka
+    depends_on:
+      postgres-17:
+        condition: service_healthy
+    ports:
+      - "8075:8069"
+    volumes:
+      - odoo-web-data:/var/lib/odoo
+      - ./config:/etc/odoo
+      - ./extra-addons:/mnt/addons
+    environment:
+      - DB_HOST=postgres-17
+      - DB_PORT=5432
+      - DB_USER=odoo18
+      - DB_PASSWORD=odoo_pg_pass
+      - DB_NAME=odoo18
+    secrets:
+      - postgresql_password
+    # Remove the command after first run
+    # command: odoo -i base -d odoo18 --without-demo=all
+
+  postgres-17:
+    image: postgres:17
+    environment:
+      - POSTGRES_DB=odoo18
+      - POSTGRES_USER=odoo18
+      - POSTGRES_PASSWORD=superadmin
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data/pgdata
+    secrets:
+      - postgresql_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo18 -d odoo18"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+volumes:
+  odoo-web-data:
+  odoo-db-data:
+
+secrets:
+  postgresql_password:
+    file: odoo_pg_password
